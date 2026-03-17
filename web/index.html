@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учёт расходов</title>
+    
+    <!-- Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ШАПКА -->
+        <header>
+            <div class="user-profile">
+                <div class="user-avatar" id="userAvatar">
+                    <div class="avatar-placeholder">?</div>
+                </div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Гость</div>
+                    <div class="user-greeting" id="greeting">Добро пожаловать! 👋</div>
+                </div>
+            </div>
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+        </header>
+
+        <!-- КАРТОЧКА БАЛАНСА -->
+        <div class="balance-card">
+            <div class="balance-row">
+                <div class="balance-item">
+                    <div class="balance-label">💰 Доход</div>
+                    <div class="balance-income" id="monthlyIncome">0 ₽</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">💸 Расход</div>
+                    <div class="balance-expense" id="monthlyExpense">0 ₽</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">📊 Дельта</div>
+                    <div class="balance-delta" id="monthlyDelta">0 ₽</div>
+                </div>
+            </div>
+            
+            <div class="balance-period" id="currentPeriod">Март 2026</div>
+            
+            <div class="balance-savings">
+                <span class="savings-label">💰 Сбережения:</span>
+                <span id="savingsAmount">0 ₽</span>
+                <span id="savingsPercent">(0%)</span>
+            </div>
+        </div>
+
+        <!-- КНОПКИ ДЕЙСТВИЙ -->
+        <div class="quick-actions">
+            <button class="action-btn" onclick="showAddExpense()">
+                <span class="action-icon">➕</span>
+                Добавить
+            </button>
+            <button class="action-btn" onclick="showAnalytics()">
+                <span class="action-icon">📊</span>
+                Аналитика
+            </button>
+            <button class="action-btn" onclick="showCharts()">
+                <span class="action-icon">📈</span>
+                Графики
+            </button>
+        </div>
+
+        <!-- КАТЕГОРИИ -->
+        <section>
+            <h2>Категории</h2>
+            <div class="categories-grid" id="categoriesGrid">
+                <!-- Категории загружаются из JS -->
+            </div>
+        </section>
+
+        <!-- ПОСЛЕДНИЕ ТРАНЗАКЦИИ -->
+        <section>
+            <h2>Последние операции</h2>
+            <div class="expenses-list" id="expensesList">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </section>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ -->
+    <div class="modal" id="expenseModal">
+        <div class="modal-content">
+            <h2>➕ Добавить операцию</h2>
+            
+            <!-- Переключатель доход/расход -->
+            <div class="transaction-type-switch">
+                <button class="type-option active" data-type="expense" onclick="setTransactionType('expense')">
+                    <span class="type-icon">💸</span>
+                    <span>Расход</span>
+                </button>
+                <button class="type-option" data-type="income" onclick="setTransactionType('income')">
+                    <span class="type-icon">💰</span>
+                    <span>Доход</span>
+                </button>
+            </div>
+            
+            <form id="expenseForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label>Сумма (₽)</label>
+                    <input type="number" id="amount" step="0.01" min="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Категория</label>
+                    <select id="category" required></select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Описание</label>
+                    <input type="text" id="description" placeholder="Например: Обед">
+                </div>
+                
+                <div class="form-group">
+                    <label>Дата</label>
+                    <input type="date" id="date">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Отмена</button>
+                    <button type="button" class="btn-save" onclick="saveTransaction()">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО АНАЛИТИКИ -->
+    <div class="modal" id="analyticsModal">
+        <div class="modal-content large">
+            <h2>📊 Аналитика</h2>
+            
+            <div class="period-tabs">
+                <button class="period-tab active" onclick="loadAnalytics('week')">Неделя</button>
+                <button class="period-tab" onclick="loadAnalytics('month')">Месяц</button>
+                <button class="period-tab" onclick="loadAnalytics('year')">Год</button>
+            </div>
+
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="chart-tabs">
+                <button class="chart-tab active" onclick="switchChart('pie')">Бублик</button>
+                <button class="chart-tab" onclick="switchChart('bar')">Столбы</button>
+                <button class="chart-tab" onclick="switchChart('line')">Линейная</button>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="analyticsChart"></canvas>
+            </div>
+
+            <button class="btn-cancel" onclick="closeAnalytics()">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- МЕНЮ -->
+    <div class="menu-modal" id="menuModal">
+        <div class="menu-content">
+            <h3>Меню</h3>
+            <div class="menu-items">
+                <div class="menu-item" onclick="goToProfile()">
+                    <span class="menu-icon">👤</span>
+                    <span>Профиль</span>
+                </div>
+                <div class="menu-item" onclick="goToSettings()">
+                    <span class="menu-icon">⚙️</span>
+                    <span>Настройки</span>
+                </div>
+                <div class="menu-item" onclick="exportData()">
+                    <span class="menu-icon">📤</span>
+                    <span>Экспорт</span>
+                </div>
+                <div class="menu-item" onclick="logout()">
+                    <span class="menu-icon">🚪</span>
+                    <span>Выход</span>
+                </div>
+            </div>
+            <button class="close-btn" onclick="closeMenu()">Закрыть</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
